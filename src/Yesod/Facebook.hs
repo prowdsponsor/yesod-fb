@@ -30,9 +30,14 @@ import qualified Yesod.Core as Y
 class Y.Yesod master => YesodFacebook master where
   -- | The credentials of your app.
   fbCredentials :: master -> FB.Credentials
+
   -- | HTTP manager used for contacting Facebook (may be the same
   -- as the one used for @yesod-auth@).
   fbHttpManager :: master -> HTTP.Manager
+
+  -- | Use Facebook's beta tier if @True@.  The default is @False@.
+  fbUseBetaTier :: master -> Bool
+  fbUseBetaTier _ = False
 
 
 -- | Returns Facebook's 'FB.Credentials' from inside a
@@ -53,7 +58,9 @@ runFacebookT act = do
   master <- Y.getYesod
   let creds   = fbCredentials master
       manager = fbHttpManager master
-  FB.runFacebookT creds manager act
+  (if fbUseBetaTier master
+   then FB.runFacebookT
+   else FB.beta_runFacebookT) creds manager act
 
 
 -- | Run a 'FacebookT' action inside a 'Y.GHandler' without using
@@ -66,7 +73,9 @@ runNoAuthFacebookT ::
 runNoAuthFacebookT act = do
   master <- Y.getYesod
   let manager = fbHttpManager master
-  FB.runNoAuthFacebookT manager act
+  (if fbUseBetaTier master
+   then FB.runNoAuthFacebookT
+   else FB.beta_runNoAuthFacebookT) manager act
 
 
 ----------------------------------------------------------------------
