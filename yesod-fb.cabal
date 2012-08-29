@@ -1,5 +1,5 @@
 Name:                yesod-fb
-Version:             0.1
+Version:             0.1.0.1
 Synopsis:            Useful glue functions between the fb library and Yesod.
 Homepage:            https://github.com/meteficha/yesod-fb
 License:             BSD3
@@ -13,7 +13,7 @@ Extra-source-files:  README
 
 Description:
   This package contains useful glue functions between the fb
-  package (http://hackage.haskell.org/package/fb) and Yesod.
+  package (<http://hackage.haskell.org/package/fb>) and Yesod.
   These functions can't be included on the fb package itself
   because it should not depend on Yesod.
 
