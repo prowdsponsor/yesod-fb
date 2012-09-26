@@ -2,8 +2,8 @@
 module Yesod.Facebook
   ( -- * Running @FacebookT@ actions inside @GHandler@
     YesodFacebook(..)
-  , runFacebookT
-  , runNoAuthFacebookT
+  , runYesodFbT
+  , runNoAuthYesodFbT
   , getFbCredentials
 
     -- * Real-time update notifications
@@ -50,11 +50,11 @@ getFbCredentials = fbCredentials <$> Y.getYesod
 
 -- | Run a 'FacebookT' action inside a 'Y.GHandler' using your
 -- credentials.
-runFacebookT ::
+runYesodFbT ::
      YesodFacebook master =>
      FB.FacebookT FB.Auth (Y.GHandler sub master) a
   -> Y.GHandler sub master a
-runFacebookT act = do
+runYesodFbT act = do
   master <- Y.getYesod
   let creds   = fbCredentials master
       manager = fbHttpManager master
@@ -66,11 +66,11 @@ runFacebookT act = do
 -- | Run a 'FacebookT' action inside a 'Y.GHandler' without using
 -- your credentials.  Usually you won't need to use this function
 -- but it's provided for completeness' sake.
-runNoAuthFacebookT ::
+runNoAuthYesodFbT ::
      YesodFacebook master =>
      FB.FacebookT FB.NoAuth (Y.GHandler sub master) a
   -> Y.GHandler sub master a
-runNoAuthFacebookT act = do
+runNoAuthYesodFbT act = do
   master <- Y.getYesod
   let manager = fbHttpManager master
   (if fbUseBetaTier master
@@ -96,7 +96,7 @@ parseRealTimeUpdateNotifications = do
     Nothing  -> myFail "X-Hub-Signature not found."
     Just sig -> do
       uncheckedData <- L.fromChunks <$> Y.lift (W.requestBody waiReq C.$$ CL.consume)
-      mcheckedData <- runFacebookT $ FB.verifyRealTimeUpdateNotifications sig uncheckedData
+      mcheckedData <- runYesodFbT $ FB.verifyRealTimeUpdateNotifications sig uncheckedData
       case mcheckedData of
         Nothing -> myFail "Signature is invalid."
         Just checkedData ->
