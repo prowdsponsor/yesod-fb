@@ -59,8 +59,8 @@ runFacebookT act = do
   let creds   = fbCredentials master
       manager = fbHttpManager master
   (if fbUseBetaTier master
-   then FB.runFacebookT
-   else FB.beta_runFacebookT) creds manager act
+   then FB.beta_runFacebookT
+   else FB.runFacebookT) creds manager act
 
 
 -- | Run a 'FacebookT' action inside a 'Y.GHandler' without using
