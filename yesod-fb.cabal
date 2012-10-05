@@ -1,5 +1,5 @@
 Name:                yesod-fb
-Version:             0.2
+Version:             0.2.1
 Synopsis:            Useful glue functions between the fb library and Yesod.
 Homepage:            https://github.com/meteficha/yesod-fb
 License:             BSD3
@@ -26,7 +26,7 @@ Library
 
   Build-depends:   base         >= 4.3     && < 5
                  , yesod-core   == 1.1.*
-                 , fb           >= 0.11.1  && < 0.13
+                 , fb           >= 0.11.1  && < 0.14
 
                  , crypto-api
                  , http-conduit
