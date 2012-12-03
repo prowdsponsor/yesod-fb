@@ -9,6 +9,9 @@ module Yesod.Facebook
     -- * Real-time update notifications
   , parseRealTimeUpdateNotifications
   , answerRealTimeUpdateChallenge
+
+    -- * Requests
+  , lookupRequestIds
   ) where
 
 import Control.Applicative ((<$>))
@@ -18,6 +21,7 @@ import qualified Data.Aeson as A
 import qualified Data.ByteString.Lazy.Char8 as L
 import qualified Data.Conduit as C
 import qualified Data.Conduit.List as CL
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Facebook as FB
 import qualified Network.Wai as W
@@ -128,3 +132,13 @@ answerRealTimeUpdateChallenge token = do
       | TE.encodeUtf8 hubVerifyToken `constTimeEq` token ->
           return $ Y.RepPlain (Y.toContent hubChallenge)
     _ -> Y.notFound
+
+
+----------------------------------------------------------------------
+
+
+-- | Lookup and parse the @request_ids@ GET parameter
+-- <http://developers.facebook.com/docs/requests/>.
+lookupRequestIds :: Y.GHandler sub master (Maybe [FB.Id])
+lookupRequestIds = (map FB.Id . T.splitOn ",") <$$> Y.lookupGetParam "request_ids"
+  where (<$$>) = fmap . fmap
