@@ -1,6 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, TypeFamilies #-}
 module Yesod.Facebook
-  ( -- * Running @FacebookT@ actions inside @GHandler@
+  ( -- * Running @FacebookT@ actions inside @HandlerT@
     YesodFacebook(..)
   , runYesodFbT
   , runNoAuthYesodFbT
@@ -31,38 +31,37 @@ import qualified Yesod.Core as Y
 
 -- | The 'YesodFacebook' class for foundation datatypes that
 -- support running 'FB.FacebookT' actions.
-class Y.Yesod master => YesodFacebook master where
+class Y.Yesod site => YesodFacebook site where
   -- | The credentials of your app.
-  fbCredentials :: master -> FB.Credentials
+  fbCredentials :: site -> FB.Credentials
 
   -- | HTTP manager used for contacting Facebook (may be the same
   -- as the one used for @yesod-auth@).
-  fbHttpManager :: master -> HTTP.Manager
+  fbHttpManager :: site -> HTTP.Manager
 
   -- | Use Facebook's beta tier if @True@.  The default is @False@.
-  fbUseBetaTier :: master -> Bool
+  fbUseBetaTier :: site -> Bool
   fbUseBetaTier _ = False
 
 
 -- | Returns Facebook's 'FB.Credentials' from inside a
--- 'Y.GHandler'.  Just a convenience wrapper around
+-- 'Y.HandlerT'.  Just a convenience wrapper around
 -- 'fbCredentials'.
-getFbCredentials :: YesodFacebook master =>
-                    Y.GHandler sub master FB.Credentials
+getFbCredentials :: (Y.MonadHandler m, Y.HandlerSite m ~ site, YesodFacebook site) =>
+                    m FB.Credentials
 getFbCredentials = fbCredentials <$> Y.getYesod
 
 
 -- | Run a 'FacebookT' action inside a 'Y.GHandler' using your
 -- credentials.
 runYesodFbT ::
-     YesodFacebook master =>
-     FB.FacebookT FB.Auth (Y.GHandler sub master) a
-  -> Y.GHandler sub master a
+  (Y.MonadHandler m, Y.HandlerSite m ~ site, YesodFacebook site) =>
+  FB.FacebookT FB.Auth m a -> m a
 runYesodFbT act = do
-  master <- Y.getYesod
-  let creds   = fbCredentials master
-      manager = fbHttpManager master
-  (if fbUseBetaTier master
+  site <- Y.getYesod
+  let creds   = fbCredentials site
+      manager = fbHttpManager site
+  (if fbUseBetaTier site
    then FB.beta_runFacebookT
    else FB.runFacebookT) creds manager act
 
@@ -71,13 +70,12 @@ runYesodFbT act = do
 -- your credentials.  Usually you won't need to use this function
 -- but it's provided for completeness' sake.
 runNoAuthYesodFbT ::
-     YesodFacebook master =>
-     FB.FacebookT FB.NoAuth (Y.GHandler sub master) a
-  -> Y.GHandler sub master a
+  (Y.MonadHandler m, Y.HandlerSite m ~ site, YesodFacebook site) =>
+  FB.FacebookT FB.NoAuth m a -> m a
 runNoAuthYesodFbT act = do
-  master <- Y.getYesod
-  let manager = fbHttpManager master
-  (if fbUseBetaTier master
+  site <- Y.getYesod
+  let manager = fbHttpManager site
+  (if fbUseBetaTier site
    then FB.runNoAuthFacebookT
    else FB.beta_runNoAuthFacebookT) manager act
 
@@ -90,8 +88,8 @@ runNoAuthYesodFbT act = do
 -- fails (signature header not found, invalid signature, invalid
 -- JSON).
 parseRealTimeUpdateNotifications ::
-  (YesodFacebook master, A.FromJSON a) =>
-  Y.GHandler sub master (FB.RealTimeUpdateNotification a)
+  (Y.MonadHandler m, Y.HandlerSite m ~ site, YesodFacebook site, A.FromJSON a) =>
+  m (FB.RealTimeUpdateNotification a)
 parseRealTimeUpdateNotifications = do
   let myFail = fail . ("parseRealTimeUpdateNotifications: " ++)
   -- Get request's signature.
@@ -99,7 +97,7 @@ parseRealTimeUpdateNotifications = do
   case lookup "X-Hub-Signature" (W.requestHeaders waiReq) of
     Nothing  -> myFail "X-Hub-Signature not found."
     Just sig -> do
-      uncheckedData <- L.fromChunks <$> Y.lift (W.requestBody waiReq C.$$ CL.consume)
+      uncheckedData <- L.fromChunks <$> (Y.rawRequestBody C.$$ CL.consume)
       mcheckedData <- runYesodFbT $ FB.verifyRealTimeUpdateNotifications sig uncheckedData
       case mcheckedData of
         Nothing -> myFail "Signature is invalid."
@@ -119,8 +117,9 @@ parseRealTimeUpdateNotifications = do
 -- 'FB.RealTimeUpdateToken' matches, otherwise it will return
 -- 'Y.notFound'.
 answerRealTimeUpdateChallenge ::
+     Y.MonadHandler m =>
      FB.RealTimeUpdateToken
-  -> Y.GHandler sub master Y.RepPlain
+  -> m Y.RepPlain
 answerRealTimeUpdateChallenge token = do
   mhubMode        <- Y.lookupGetParam "hub.mode"
   mhubChallenge   <- Y.lookupGetParam "hub.challenge"
@@ -139,6 +138,6 @@ answerRealTimeUpdateChallenge token = do
 
 -- | Lookup and parse the @request_ids@ GET parameter
 -- <http://developers.facebook.com/docs/requests/>.
-lookupRequestIds :: Y.GHandler sub master (Maybe [FB.Id])
+lookupRequestIds :: Y.MonadHandler m => m (Maybe [FB.Id])
 lookupRequestIds = (map FB.Id . T.splitOn ",") <$$> Y.lookupGetParam "request_ids"
   where (<$$>) = fmap . fmap
