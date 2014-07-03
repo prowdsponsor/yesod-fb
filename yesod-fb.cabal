@@ -1,7 +1,7 @@
 Name:                yesod-fb
-Version:             0.3.2
+Version:             0.3.3
 Synopsis:            Useful glue functions between the fb library and Yesod.
-Homepage:            https://github.com/meteficha/yesod-fb
+Homepage:            https://github.com/prowdsponsor/yesod-fb
 License:             BSD3
 License-file:        LICENSE
 Author:              Felipe Lessa
@@ -19,7 +19,7 @@ Description:
 
 Source-repository head
   type:     git
-  location: git://github.com/meteficha/yesod-fb.git
+  location: git://github.com/prowdsponsor/yesod-fb.git
 
 Library
   hs-source-dirs: src
