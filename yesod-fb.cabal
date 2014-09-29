@@ -1,5 +1,5 @@
 Name:                yesod-fb
-Version:             0.3.3
+Version:             0.3.4
 Synopsis:            Useful glue functions between the fb library and Yesod.
 Homepage:            https://github.com/prowdsponsor/yesod-fb
 License:             BSD3
